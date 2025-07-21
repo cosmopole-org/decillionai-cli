@@ -6,6 +6,7 @@ import readline from "node:readline";
 import express from "express";
 import { Server } from "node:http";
 import JSONbig from 'json-bigint';
+import { WebSocket } from "ws";
 
 const USER_ID_NOT_SET_ERR_CODE: number = 10;
 const USER_ID_NOT_SET_ERR_MSG: string = "not authenticated, userId is not set";
@@ -36,9 +37,12 @@ const { verifier, challenge } = generatePKCECodes();
 
 class Decillion {
   port: number = 8078;
+  port2: number = 8077;
   host: string = "api.decillionai.com";
+  protocol: string = "ws";
   callbacks: { [key: string]: (packageId: number, obj: any) => void } = {};
   socket: tls.TLSSocket | undefined;
+  websocket: WebSocket | undefined;
   received: Buffer = Buffer.from([]);
   observePhase: boolean = true;
   nextLength: number = 0;
@@ -62,36 +66,57 @@ class Decillion {
   }
   private async connectoToTlsServer() {
     return new Promise((resolve, reject) => {
-      const options: tls.ConnectionOptions = {
-        host: this.host,
-        port: this.port,
-        servername: this.host,
-        rejectUnauthorized: true,
-      };
-      this.socket = tls.connect(options, () => {
-        if (this.socket?.authorized) {
-          console.log("✔ TLS connection authorized");
-        } else {
-          console.log(
-            "⚠ TLS connection not authorized:",
-            this.socket?.authorizationError
-          );
-        }
-        resolve(undefined);
-      });
-      this.socket.on("error", (e) => {
-        console.log(e);
-      });
-      this.socket.on("close", (e) => {
-        console.log(e);
-        this.connectoToTlsServer();
-      });
-      this.socket.on("data", (data) => {
-        setTimeout(() => {
-          this.received = Buffer.concat([this.received, data]);
-          this.readBytes();
+      if (this.protocol === "tcp") {
+        const options: tls.ConnectionOptions = {
+          host: this.host,
+          port: this.port,
+          servername: this.host,
+          rejectUnauthorized: true,
+        };
+        this.socket = tls.connect(options, () => {
+          if (this.socket?.authorized) {
+            console.log("✔ Tcp TLS connection authorized");
+          } else {
+            console.log(
+              "⚠ TLS connection not authorized:",
+              this.socket?.authorizationError
+            );
+          }
+          resolve(undefined);
         });
-      });
+        this.socket.on("error", (e) => {
+          console.log(e);
+        });
+        this.socket.on("close", (e) => {
+          console.log(e);
+          this.connectoToTlsServer();
+        });
+        this.socket.on("data", (data) => {
+          setTimeout(() => {
+            this.received = Buffer.concat([this.received, data]);
+            this.readBytes();
+          });
+        });
+      } else {
+        this.websocket = new WebSocket(`wss://${this.host}:${this.port2}`);
+        this.websocket.on('open', () => {
+          console.log("✔ Ws TLS connection authorized");
+          resolve(undefined);
+        });
+        this.websocket.on("error", (e) => {
+          console.log("error:", e);
+        });
+        this.websocket.on("close", (e) => {
+          console.log("close", e);
+          this.connectoToTlsServer();
+        });
+        this.websocket.on("message", (data) => {
+          setTimeout(() => {
+            this.received = Buffer.concat([this.received, data as Buffer]);
+            this.readBytes();
+          });
+        });
+      }
     });
   }
   private processPacket(data: Buffer) {
@@ -128,7 +153,11 @@ class Decillion {
       console.log(ex);
     }
     setTimeout(() => {
-      this.socket?.write(Buffer.from([0x00, 0x00, 0x00, 0x01, 0x01]));
+      if (this.protocol === "tcp") {
+        this.socket?.write(Buffer.from([0x00, 0x00, 0x00, 0x01, 0x01]));
+      } else {
+        this.websocket?.send(Buffer.from([0x00, 0x00, 0x00, 0x01, 0x01]));
+      }
     });
   }
   private sign(b: Buffer) {
@@ -197,7 +226,11 @@ class Decillion {
         clearTimeout(to);
       }, 360000);
       setTimeout(() => {
-        this.socket?.write(data.data);
+        if (this.protocol === "tcp") {
+          this.socket?.write(data.data);
+        } else {
+          this.websocket?.send(data.data);
+        }
       });
     });
   }
@@ -211,9 +244,16 @@ class Decillion {
   private userId: string | undefined;
   private privateKey: Buffer | undefined;
   private username: string | undefined;
-  public constructor(host?: string, port?: number) {
+  public constructor(proto = "ws", host?: string, port?: number) {
+    this.protocol = proto;
     if (host) this.host = host;
-    if (port) this.port = port;
+    if (port) {
+      if (proto === "tcp") {
+        this.port = port;
+      } else {
+        this.port2 = port;
+      }
+    }
     if (!fs.existsSync("auth")) fs.mkdirSync("auth");
     if (!fs.existsSync("files")) fs.mkdirSync("files");
     if (

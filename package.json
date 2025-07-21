@@ -38,6 +38,7 @@
     },
     "devDependencies": {
         "@types/json-bigint": "^1.0.4",
-        "@types/node": "^24.0.13"
+        "@types/node": "^24.0.13",
+        "@types/ws": "^8.18.1"
     }
 }
