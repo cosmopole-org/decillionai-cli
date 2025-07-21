@@ -424,10 +424,29 @@ class Decillion {
           obj: { message: USER_ID_NOT_SET_ERR_MSG },
         };
       }
-      return await this.sendRequest(this.userId, "/users/lockToken", {
+      let res = await this.sendRequest(this.userId, "/users/lockToken", {
         amount: amount,
         type: type,
         target: target
+      });
+      console.log();
+      console.log(this.sign(Buffer.from(res.obj.tokenId)));
+      console.log();
+      return res;
+    },
+    consumeLock: async (lockId: string, type: string, amount: number): Promise<{ resCode: number; obj: any }> => {
+      if (!this.userId) {
+        return {
+          resCode: USER_ID_NOT_SET_ERR_CODE,
+          obj: { message: USER_ID_NOT_SET_ERR_MSG },
+        };
+      }
+      return await this.sendRequest(this.userId, "/users/consumeLock", {
+        amount: amount,
+        type: type,
+        lockId: lockId,
+        signature: this.sign(Buffer.from(lockId)),
+        userid: this.userId
       });
     },
     me: async (): Promise<{ resCode: number; obj: any }> => {
@@ -1000,6 +1019,20 @@ const commands: {
       };
     }
     return app.users.lockToken(Number(args[0]), args[1], args[2]);
+  },
+  "users.consumeLock": async (
+    args: string[]
+  ): Promise<{ resCode: number; obj: any }> => {
+    if (args.length !== 3) {
+      return { resCode: 30, obj: { message: "invalid parameters count" } };
+    }
+    if (!isNumeric(args[2])) {
+      return {
+        resCode: 30,
+        obj: { message: "invalid numeric value: amount --> " + args[2] },
+      };
+    }
+    return app.users.consumeLock(args[0], args[1], Number(args[2]));
   },
   "users.list": async (
     args: string[]
