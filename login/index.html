@@ -45,15 +45,17 @@
 
         onAuthStateChanged(auth, async user => {
             if (user) {
-                await fetch('http://localhost:3000/callback', {
+                let res = await fetch('http://localhost:3000/callback', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({ idToken: await user.getIdToken() })
                 });
-            } else {
-                
+                alert(JSON.stringify(res));
+                if ((await res.json())["success"]) {
+                    window.location.href = 'http://localhost:3000/success.html';
+                }
             }
         });
         window.login = function login() {

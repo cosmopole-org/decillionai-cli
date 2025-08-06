@@ -165,7 +165,7 @@ class Decillion {
       const sign = crypto.sign(null, b, {
         key: this.privateKey,
         padding: crypto.constants.RSA_PKCS1_PSS_PADDING,
-        saltLength: 32, // Must match Dart or Go
+        saltLength: 32,
       });
       return sign.toString('base64');
     } else {
@@ -281,7 +281,7 @@ class Decillion {
     server.use(express.static('../login'));
     server.use(express.json());
     server.use(express.urlencoded());
-    server.post("/callback", async (req, res) => {
+    server.post("/callback", async (req, responder) => {
       try {
 
         const idToken = req.body.idToken;
@@ -289,6 +289,11 @@ class Decillion {
         let res = await this.sendRequest("", "/users/login", {
           username: this.pendingUsername,
           emailToken: idToken,
+          metadata: {
+            public: {
+              profile: { name: this.pendingUsername },
+            },
+          },
         });
         if (res.resCode == 0) {
           this.userId = res.obj.user.id;
@@ -320,15 +325,15 @@ class Decillion {
         }
         console.log("Login successfull");
         if (this.loginServer) {
-          this.loginServer.close(() => {
-            if (this.loginPromise) {
-              this.loginPromise(res);
-            }
-          });
+          this.loginServer.close(() => { });
+          if (this.loginPromise) {
+            responder.send(JSON.stringify({ success: true }));
+            this.loginPromise(res);
+          }
         }
       } catch (err) {
         console.error("Auth error:", err);
-        res.status(500).send("Authentication failed");
+        responder.status(500).send("Authentication failed");
       }
     });
 
@@ -486,7 +491,8 @@ class Decillion {
     create: async (
       isPublic: boolean,
       persHist: boolean,
-      origin: string
+      origin: string,
+      metadata: { [key: string]: any }
     ): Promise<{ resCode: number; obj: any }> => {
       if (!this.userId) {
         return {
@@ -498,6 +504,8 @@ class Decillion {
         isPublic: isPublic,
         persHist: persHist,
         orig: origin,
+        metadata,
+        tag: 'group'
       });
     },
     update: async (
@@ -537,6 +545,7 @@ class Decillion {
       }
       return await this.sendRequest(this.userId, "/points/get", {
         pointId: pointId,
+        includeMeta: true,
       });
     },
     myPoints: async (
@@ -831,6 +840,20 @@ class Decillion {
           obj: { message: USER_ID_NOT_SET_ERR_MSG },
         };
       }
+      if (runtime == "docker") {
+        if (!metadata["imageName"]) {
+          return {
+            resCode: 100,
+            obj: { message: "docker image name must be specified" },
+          };
+        }
+        if (!metadata["files"]) {
+          return {
+            resCode: 101,
+            obj: { message: "source files must be specified" },
+          };
+        }
+      }
       return await this.sendRequest(this.userId, "/machines/deploy", {
         machineId: machineId,
         byteCode: byteCode,
@@ -1063,7 +1086,7 @@ const commands: {
   "points.create": async (
     args: string[]
   ): Promise<{ resCode: number; obj: any }> => {
-    if (args.length !== 3) {
+    if (args.length !== 4) {
       return { resCode: 30, obj: { message: "invalid parameters count" } };
     }
     if (args[0] !== "true" && args[0] !== "false") {
@@ -1078,10 +1101,17 @@ const commands: {
         obj: { message: "unknown parameter value: persHist --> " + args[1] },
       };
     }
+    let metadata: any = {};
+    try {
+      metadata = JSONbig.parse(args[3]);
+    } catch (ex) {
+      return { resCode: 30, obj: { message: "invalid metadata json" } };
+    }
     return await app.points.create(
       args[0] === "true",
       args[1] === "true",
-      args[2]
+      args[2],
+      metadata,
     );
   },
   "points.update": async (
@@ -1378,6 +1408,13 @@ const commands: {
     }
     await executeBash(`cd ${args[1]}/builder && bash build.sh`);
     let bc = fs.readFileSync(`${args[1]}/builder/bytecode`);
+    let files: { [name: string]: string } = {};
+    fs.readdirSync(`${args[1]}/src`, { withFileTypes: true })
+      .filter(item => !item.isDirectory())
+      .map(item => {
+        files[item.name] = fs.readFileSync(`${args[1]}/builder/bytecode`).toString('base64');
+      });
+    metadata["files"] = files;
     return await app.machines.deploy(
       args[0],
       bc.toString("base64"),
@@ -1475,11 +1512,12 @@ For full documentation, visit: https://decillionai.com/docs/cli
 
 [Points]
 
-  points.create [isPublic] [hasPersistentHistory] [origin]
+  points.create [isPublic] [hasPersistentHistory] [origin] [metadata]
     → Create a new point with the given configuration.
       - isPublic: true/false — should the point be public?
       - hasPersistentHistory: true/false — should it retain history?
       - origin: e.g., "global" — namespace of the point
+      - metadata: a json string. "title" and "avatar" are necessary fields. e.g., "{ 'public': { 'profile': { 'title': 'test room', 'avatar': '123' } } }"
       - Example: points.create true true global
 
   points.update [pointId] [isPublic] [hasPersistentHistory]
