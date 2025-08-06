@@ -1,0 +1,70 @@
+<html>
+
+<head>
+
+</head>
+
+<body>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js';
+        import {
+            getAuth,
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            onAuthStateChanged,
+            signOut
+        } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js';
+        import { initializeAppCheck, ReCaptchaV3Provider } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-app-check.js';
+
+        self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+
+        let appcheckToken = '';
+
+        // const appCheck = initializeAppCheck(app, {
+        //     provider: new ReCaptchaV3Provider('<SITE_KEY>'),
+        //     isTokenAutoRefreshEnabled: true
+        // });
+
+        // appCheck.getToken().then(tokenResponse => {
+        //     appcheckToken = tokenResponse.token;
+        //     console.log('App Check token:', appcheckToken);
+        // });
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAE2NzFvWhfzW-00lpsFH1ucCgvBlECiJQ",
+            authDomain: "decillionai-b8ecb.firebaseapp.com",
+            projectId: "decillionai-b8ecb",
+            storageBucket: "decillionai-b8ecb.firebasestorage.app",
+            messagingSenderId: "220203818235",
+            appId: "1:220203818235:web:31b8d23a748ef292d8a45e",
+            measurementId: "G-GQWQ6VQPHZ"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        onAuthStateChanged(auth, async user => {
+            if (user) {
+                await fetch('http://localhost:3000/callback', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ idToken: await user.getIdToken() })
+                });
+            } else {
+                
+            }
+        });
+        window.login = function login() {
+            let email = document.getElementById('email').value;
+            let password = document.getElementById('password').value;
+            signInWithEmailAndPassword(auth, email, password);
+        }
+    </script>
+    <input id="email" type="text">
+    <input id="password" type="password">
+    <button onclick="window.login()">Login</button>
+</body>
+
+</html>

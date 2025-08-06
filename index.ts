@@ -162,10 +162,12 @@ class Decillion {
   }
   private sign(b: Buffer) {
     if (this.privateKey) {
-      var sign = crypto.createSign("RSA-SHA256");
-      sign.update(b.toString(), "utf8");
-      var signature = sign.sign(this.privateKey, "base64");
-      return signature;
+      const sign = crypto.sign(null, b, {
+        key: this.privateKey,
+        padding: crypto.constants.RSA_PKCS1_PSS_PADDING,
+        saltLength: 32, // Must match Dart or Go
+      });
+      return sign.toString('base64');
     } else {
       return "";
     }
@@ -242,7 +244,7 @@ class Decillion {
     });
   }
   private userId: string | undefined;
-  private privateKey: Buffer | undefined;
+  private privateKey: string | undefined;
   private username: string | undefined;
   public constructor(proto = "ws", host?: string, port?: number) {
     this.protocol = proto;
@@ -262,12 +264,7 @@ class Decillion {
     ) {
       this.userId = fs.readFileSync("auth/userId.txt", { encoding: "utf-8" });
       let pk = fs.readFileSync("auth/privateKey.txt", { encoding: "utf-8" });
-      this.privateKey = Buffer.from(
-        "-----BEGIN RSA PRIVATE KEY-----\n" +
-        pk +
-        "\n-----END RSA PRIVATE KEY-----\n",
-        "utf-8"
-      );
+      this.privateKey = pk;
     }
   }
   public async connect() {
@@ -281,30 +278,13 @@ class Decillion {
   private runLoginServer() {
     const server = express();
     const port = 3000;
-    const authConfig = {
-      domain: AUTH0_DOMAIN,
-      clientId: CLIENT_ID,
-      redirectUri: "http://localhost:3000/callback",
-    };
-    server.get("/callback", async (req, res) => {
-      const code = req.query.code;
+    server.use(express.static('../login'));
+    server.use(express.json());
+    server.use(express.urlencoded());
+    server.post("/callback", async (req, res) => {
       try {
-        const tokenRes = await fetch(
-          `https://${authConfig.domain}/oauth/token`,
-          {
-            method: "POST",
-            body: JSONbig.stringify({
-              grant_type: "authorization_code",
-              client_id: authConfig.clientId,
-              code_verifier: verifier,
-              code,
-              redirect_uri: authConfig.redirectUri,
-            }),
-            headers: { "content-type": "application/json" },
-          }
-        );
 
-        const idToken = (await tokenRes.json()).id_token;
+        const idToken = req.body.idToken;
 
         let res = await this.sendRequest("", "/users/login", {
           username: this.pendingUsername,
@@ -312,12 +292,7 @@ class Decillion {
         });
         if (res.resCode == 0) {
           this.userId = res.obj.user.id;
-          this.privateKey = Buffer.from(
-            "-----BEGIN RSA PRIVATE KEY-----\n" +
-            res.obj.privateKey +
-            "\n-----END RSA PRIVATE KEY-----\n",
-            "utf-8"
-          );
+          this.privateKey = res.obj.privateKey;
           await Promise.all([
             new Promise((resolve, _) => {
               fs.writeFile(
@@ -372,19 +347,10 @@ class Decillion {
   public async login(username: string): Promise<{ resCode: number; obj: any }> {
     return new Promise((resolve, reject) => {
       this.pendingUsername = username;
-      const params = new URLSearchParams({
-        response_type: "code",
-        client_id: CLIENT_ID,
-        redirect_uri: REDIRECT_URI,
-        scope: "openid email",
-        code_challenge: challenge,
-        code_challenge_method: "S256",
-      });
-      const url = `https://${AUTH0_DOMAIN}/authorize?${params.toString()}`;
       this.loginPromise = resolve;
       this.runLoginServer();
       console.log("\nOpen this url and login:\n");
-      console.log(url);
+      console.log('http://localhost:3000/index.html');
       console.log("");
     });
   }
