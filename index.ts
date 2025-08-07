@@ -611,7 +611,8 @@ class Decillion {
       userId: string,
       typ: string,
       data: string,
-      lockId?: string
+      lockId?: string,
+      isTemp?: boolean,
     ): Promise<{ resCode: number; obj: any }> => {
       if (!this.userId) {
         return {
@@ -624,20 +625,26 @@ class Decillion {
         m["paymentLockId"] = lockId;
         m["lockSignature"] = this.sign(Buffer.from(lockId));
         let newData = JSONbig.stringify(m);
-        return await this.sendRequest(this.userId, "/points/signal", {
+        this.sendRequest(this.userId, "/points/signal", {
           pointId: pointId,
           userId: userId,
           type: typ,
           data: newData,
+          temp: isTemp
         });
       } else {
-        return await this.sendRequest(this.userId, "/points/signal", {
+        this.sendRequest(this.userId, "/points/signal", {
           pointId: pointId,
           userId: userId,
           type: typ,
           data: data,
+          temp: isTemp
         });
       }
+      return {
+        resCode: 0,
+        obj: { message: "job created" },
+      };
     },
     addMember: async (
       userId: string,
@@ -1223,6 +1230,14 @@ const commands: {
     }
     return await app.points.signal(args[0], args[1], args[2], args[3]);
   },
+  "points.fileSignal": async (
+    args: string[]
+  ): Promise<{ resCode: number; obj: any }> => {
+    if (args.length !== 4) {
+      return { resCode: 30, obj: { message: "invalid parameters count" } };
+    }
+    return await app.points.signal(args[0], args[1], args[2], args[3]);
+  },
   "points.paidSignal": async (
     args: string[]
   ): Promise<{ resCode: number; obj: any }> => {
@@ -1412,7 +1427,7 @@ const commands: {
     fs.readdirSync(`${args[1]}/src`, { withFileTypes: true })
       .filter(item => !item.isDirectory())
       .map(item => {
-        files[item.name] = fs.readFileSync(`${args[1]}/builder/bytecode`).toString('base64');
+        files[item.name] = fs.readFileSync(`${args[1]}/src/${item.name}`).toString('base64');
       });
     metadata["files"] = files;
     return await app.machines.deploy(
@@ -1470,6 +1485,27 @@ const commands: {
     }
     console.clear();
     let res = await app.pc.runPc();
+    pcId = res.obj.vmId;
+    return res;
+  },
+  "test": async (
+    args: string[]
+  ): Promise<{ resCode: number; obj: any }> => {
+    if (args.length !== 0) {
+      return { resCode: 30, obj: { message: "invalid parameters count" } };
+    }
+    let data = fs.readFileSync("../testfile.txt", { encoding: 'utf-8' });
+    let res = await app.points.signal("1@172.77.5.1", "7@global", "single", JSON.stringify({ "act": "upload", "fileKey": "ok", content: data, "totalSize": data.length + "keyhan".length  }), undefined, true);
+    return res;
+  },
+  "test2": async (
+    args: string[]
+  ): Promise<{ resCode: number; obj: any }> => {
+    if (args.length !== 0) {
+      return { resCode: 30, obj: { message: "invalid parameters count" } };
+    }
+    let data = fs.readFileSync("../testfile.txt", { encoding: 'utf-8' });
+    let res = await app.points.signal("1@172.77.5.1", "7@global", "single", JSON.stringify({ "act": "upload", "fileKey": "ok", content: "keyhan", "totalSize":  data.length + "keyhan".length }), undefined, true);
     pcId = res.obj.vmId;
     return res;
   },
