@@ -63,10 +63,16 @@
             let password = document.getElementById('password').value;
             signInWithEmailAndPassword(auth, email, password);
         }
+        window.register = function register() {
+            let email = document.getElementById('email').value;
+            let password = document.getElementById('password').value;
+            createUserWithEmailAndPassword(auth, email, password);
+        }
     </script>
     <input id="email" type="text">
     <input id="password" type="password">
     <button onclick="window.login()">Login</button>
+    <button onclick="window.register()">Register</button>
 </body>
 
 </html>

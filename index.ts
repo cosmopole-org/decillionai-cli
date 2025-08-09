@@ -804,7 +804,10 @@ class Decillion {
   };
   public machines = {
     createApp: async (
-      chainId: bigint
+      chainId: bigint,
+      username: string,
+      title: string,
+      desc: string,
     ): Promise<{ resCode: number; obj: any }> => {
       if (!this.userId) {
         return {
@@ -814,13 +817,25 @@ class Decillion {
       }
       return await this.sendRequest(this.userId, "/apps/create", {
         chainId: chainId,
+        username: username,
+        metadata: {
+          'public': {
+            'profile': {
+              'title': title,
+              'avatar': '123',
+              'desc': desc
+            }
+          }
+        },
       });
     },
     createMachine: async (
       username: string,
       appId: string,
       path: string,
-      publicKey: string
+      runtime: string,
+      comment: string,
+      publicKey: string,
     ): Promise<{ resCode: number; obj: any }> => {
       if (!this.userId) {
         return {
@@ -833,6 +848,8 @@ class Decillion {
         appId: appId,
         path: path,
         publicKey: publicKey,
+        runtime: runtime,
+        comment: comment,
       });
     },
     deploy: async (
@@ -1108,17 +1125,18 @@ const commands: {
         obj: { message: "unknown parameter value: persHist --> " + args[1] },
       };
     }
-    let metadata: any = {};
-    try {
-      metadata = JSONbig.parse(args[3]);
-    } catch (ex) {
-      return { resCode: 30, obj: { message: "invalid metadata json" } };
-    }
     return await app.points.create(
       args[0] === "true",
       args[1] === "true",
       args[2],
-      metadata,
+      {
+        'public': {
+          'profile': {
+            'title': args[3],
+            'avatar': '123'
+          }
+        }
+      }
     );
   },
   "points.update": async (
@@ -1390,7 +1408,7 @@ const commands: {
   "machines.createApp": async (
     args: string[]
   ): Promise<{ resCode: number; obj: any }> => {
-    if (args.length !== 1) {
+    if (args.length !== 4) {
       return { resCode: 30, obj: { message: "invalid parameters count" } };
     }
     if (!isNumeric(args[0])) {
@@ -1399,15 +1417,15 @@ const commands: {
         obj: { message: "invalid numeric value: chainId --> " + args[0] },
       };
     }
-    return await app.machines.createApp(BigInt(args[0]));
+    return await app.machines.createApp(BigInt(args[0]), args[1], args[2], args[3]);
   },
   "machines.createMachine": async (
     args: string[]
   ): Promise<{ resCode: number; obj: any }> => {
-    if (args.length !== 3) {
+    if (args.length !== 5) {
       return { resCode: 30, obj: { message: "invalid parameters count" } };
     }
-    return await app.machines.createMachine(args[0], args[1], args[2], "");
+    return await app.machines.createMachine(args[0], args[1], args[2], args[3], args[4], "");
   },
   "machines.deploy": async (
     args: string[]
@@ -1495,7 +1513,7 @@ const commands: {
       return { resCode: 30, obj: { message: "invalid parameters count" } };
     }
     let data = fs.readFileSync("../testfile.txt", { encoding: 'utf-8' });
-    let res = await app.points.signal("1@172.77.5.1", "7@global", "single", JSON.stringify({ "act": "upload", "fileKey": "ok", content: data, "totalSize": data.length + "keyhan".length  }), undefined, true);
+    let res = await app.points.signal("1@172.77.5.1", "7@global", "single", JSON.stringify({ "act": "upload", "fileKey": "ok", content: data, "totalSize": data.length + "keyhan".length }), undefined, true);
     return res;
   },
   "test2": async (
@@ -1505,7 +1523,7 @@ const commands: {
       return { resCode: 30, obj: { message: "invalid parameters count" } };
     }
     let data = fs.readFileSync("../testfile.txt", { encoding: 'utf-8' });
-    let res = await app.points.signal("1@172.77.5.1", "7@global", "single", JSON.stringify({ "act": "upload", "fileKey": "ok", content: "keyhan", "totalSize":  data.length + "keyhan".length }), undefined, true);
+    let res = await app.points.signal("1@172.77.5.1", "7@global", "single", JSON.stringify({ "act": "upload", "fileKey": "ok", content: "keyhan", "totalSize": data.length + "keyhan".length }), undefined, true);
     pcId = res.obj.vmId;
     return res;
   },
