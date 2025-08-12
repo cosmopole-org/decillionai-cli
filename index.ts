@@ -930,6 +930,19 @@ class Decillion {
         fileId: fileId,
       });
     },
+    uploadUserEntity: async (data: Buffer, entityId: string, machineId?: string) => {
+      if (!this.userId) {
+        return {
+          resCode: USER_ID_NOT_SET_ERR_CODE,
+          obj: { message: USER_ID_NOT_SET_ERR_MSG },
+        };
+      }
+      return await this.sendRequest(this.userId, "/storage/uploadUserEntity", {
+        machineId: machineId,
+        data: data.toString("base64"),
+        entityId: entityId,
+      });
+    },
     download: async (pointId: string, fileId: string) => {
       if (!this.userId) {
         return {
@@ -1354,6 +1367,18 @@ const commands: {
         fs.readFileSync(args[1]),
         args[2]
       );
+    }
+  },
+  "storage.uploadUserEntity": async (
+    args: string[]
+  ): Promise<{ resCode: number; obj: any }> => {
+    if (args.length !== 2 && args.length !== 3) {
+      return { resCode: 30, obj: { message: "invalid parameters count" } };
+    }
+    if (args.length == 2) {
+      return await app.storage.uploadUserEntity(fs.readFileSync(args[1]), args[0]);
+    } else {
+      return await app.storage.uploadUserEntity(fs.readFileSync(args[1]), args[0], args[2]);
     }
   },
   "storage.download": async (
