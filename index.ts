@@ -36,8 +36,8 @@ function generatePKCECodes() {
 const { verifier, challenge } = generatePKCECodes();
 
 class Decillion {
-  port: number = 8078;
-  port2: number = 8077;
+  port: number = 8077;
+  port2: number = 8076;
   host: string = "api.decillionai.com";
   protocol: string = "ws";
   callbacks: { [key: string]: (packageId: number, obj: any) => void } = {};
@@ -1528,27 +1528,6 @@ const commands: {
     }
     console.clear();
     let res = await app.pc.runPc();
-    pcId = res.obj.vmId;
-    return res;
-  },
-  "test": async (
-    args: string[]
-  ): Promise<{ resCode: number; obj: any }> => {
-    if (args.length !== 0) {
-      return { resCode: 30, obj: { message: "invalid parameters count" } };
-    }
-    let data = fs.readFileSync("../testfile.txt", { encoding: 'utf-8' });
-    let res = await app.points.signal("1@172.77.5.1", "7@global", "single", JSON.stringify({ "act": "upload", "fileKey": "ok", content: data, "totalSize": data.length + "keyhan".length }), undefined, true);
-    return res;
-  },
-  "test2": async (
-    args: string[]
-  ): Promise<{ resCode: number; obj: any }> => {
-    if (args.length !== 0) {
-      return { resCode: 30, obj: { message: "invalid parameters count" } };
-    }
-    let data = fs.readFileSync("../testfile.txt", { encoding: 'utf-8' });
-    let res = await app.points.signal("1@172.77.5.1", "7@global", "single", JSON.stringify({ "act": "upload", "fileKey": "ok", content: "keyhan", "totalSize": data.length + "keyhan".length }), undefined, true);
     pcId = res.obj.vmId;
     return res;
   },
