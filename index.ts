@@ -646,6 +646,23 @@ class Decillion {
         obj: { message: "job created" },
       };
     },
+    addMachine: async (
+      pointId: string,
+      appId: string,
+      machineId: string
+    ): Promise<{ resCode: number; obj: any }> => {
+      if (!this.userId) {
+        return {
+          resCode: USER_ID_NOT_SET_ERR_CODE,
+          obj: { message: USER_ID_NOT_SET_ERR_MSG },
+        };
+      }
+      return await this.sendRequest(this.userId, "/points/addMachine", {
+        pointId: pointId,
+        appId: appId,
+        machineMeta: { machineId: machineId, identifier: '0', metadata: {} },
+      });
+    },
     addMember: async (
       userId: string,
       pointId: string,
@@ -1320,6 +1337,14 @@ const commands: {
       return { resCode: 30, obj: { message: "invalid parameters count" } };
     }
     return await app.points.listMembers(args[0]);
+  },
+  "points.addMachine": async (
+    args: string[]
+  ): Promise<{ resCode: number; obj: any }> => {
+    if (args.length !== 3) {
+      return { resCode: 30, obj: { message: "invalid parameters count" } };
+    }
+    return await app.points.addMachine(args[0], args[1], args[2]);
   },
   "invites.create": async (
     args: string[]
