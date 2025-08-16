@@ -869,6 +869,27 @@ class Decillion {
         comment: comment,
       });
     },
+    updateMachine: async (
+      machineId: string,
+      path: string,
+      metadata: any,
+      promptFile?: string
+    ): Promise<{ resCode: number; obj: any }> => {
+      if (!this.userId) {
+        return {
+          resCode: USER_ID_NOT_SET_ERR_CODE,
+          obj: { message: USER_ID_NOT_SET_ERR_MSG },
+        };
+      }
+      if (promptFile) {
+        metadata["prompt"] = fs.readFileSync(promptFile, { encoding: 'utf-8' });
+      }
+      return await this.sendRequest(this.userId, "/apps/updateMachine", {
+        machineId: machineId,
+        path: path,
+        metadata: metadata
+      });
+    },
     deploy: async (
       machineId: string,
       byteCode: string,
@@ -1476,6 +1497,24 @@ const commands: {
       return { resCode: 30, obj: { message: "invalid parameters count" } };
     }
     return await app.machines.createMachine(args[0], args[1], args[2], args[3], args[4], "");
+  },
+  "machines.updateMachine": async (
+    args: string[]
+  ): Promise<{ resCode: number; obj: any }> => {
+    if (args.length !== 3 && args.length !== 4) {
+      return { resCode: 30, obj: { message: "invalid parameters count" } };
+    }
+    let metadata: any = {};
+    try {
+      metadata = JSONbig.parse(args[2]);
+    } catch (ex) {
+      return { resCode: 30, obj: { message: "invalid metadata json" } };
+    }
+    if (args.length == 4) {
+      return await app.machines.updateMachine(args[0], args[1], metadata, args[3]);
+    } else {
+      return await app.machines.updateMachine(args[0], args[1], metadata);
+    }
   },
   "machines.deploy": async (
     args: string[]
