@@ -1508,7 +1508,11 @@ const commands: {
     try {
       metadata = JSONbig.parse(args[2]);
     } catch (ex) {
-      return { resCode: 30, obj: { message: "invalid metadata json" } };
+      try {
+        metadata = JSON.parse(fs.readFileSync(args[2], { encoding: 'utf-8' }));
+      } catch (ex) {
+        return { resCode: 30, obj: { message: "invalid metadata json" } };
+      }
     }
     if (args.length == 4) {
       return await app.machines.updateMachine(args[0], args[1], metadata, args[3]);
