@@ -132,6 +132,8 @@ class Decillion {
         let obj = JSONbig.parse(payload.toString());
         if (key == "pc/message") {
           if (pcId) process.stdout.write(obj.message);
+        } else if (key == "docker/build") {
+          if (dockBuild) process.stdout.write(obj.message);
         } else {
           console.log(key, obj);
         }
@@ -915,6 +917,9 @@ class Decillion {
             obj: { message: "source files must be specified" },
           };
         }
+        dockBuild = machineId;
+        console.clear();
+        console.log("starting docker build...");
       }
       return await this.sendRequest(this.userId, "/machines/deploy", {
         machineId: machineId,
@@ -1061,6 +1066,7 @@ const rl = readline.createInterface({
 
 let app = new Decillion();
 let pcId: string | undefined = undefined;
+let dockBuild: string | undefined = undefined;
 
 const commands: {
   [key: string]: (args: string[]) => Promise<{ resCode: number; obj: any }>;
@@ -1846,6 +1852,14 @@ let ask = () => {
       let command = q.trim();
       if (parts.length == 2 && parts[0] === "pc" && parts[1] == "stop") {
         pcId = undefined;
+        console.log(
+          'Welcome to Decillion AI shell, enter your command or enter "help" to view commands instructions: \n'
+        );
+        setTimeout(() => {
+          ask();
+        });
+      } else if (parts.length == 3 && parts[0] === "docker" && parts[1] == "logs" && parts[2] == "exit" ) {
+        dockBuild = undefined;
         console.log(
           'Welcome to Decillion AI shell, enter your command or enter "help" to view commands instructions: \n'
         );
