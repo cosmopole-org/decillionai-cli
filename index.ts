@@ -133,7 +133,7 @@ class Decillion {
         if (key == "pc/message") {
           if (pcId) process.stdout.write(obj.message);
         } else if (key == "docker/build") {
-          if (dockBuild) process.stdout.write(obj.message);
+          if (dockBuild) process.stdout.write(obj.message + "\n");
         } else {
           console.log(key, obj);
         }
