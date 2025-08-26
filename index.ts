@@ -662,7 +662,7 @@ class Decillion {
       return await this.sendRequest(this.userId, "/points/addMachine", {
         pointId: pointId,
         appId: appId,
-        machineMeta: { machineId: machineId, identifier: '0', metadata: {} },
+        machineMeta: { machineId: machineId, identifier: '0', metadata: {}, access: { "sendSignal": true } },
       });
     },
     addMember: async (
