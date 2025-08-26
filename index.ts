@@ -905,7 +905,7 @@ class Decillion {
         };
       }
       if (runtime == "docker") {
-        if (!metadata["imageName"]) {
+        if (!metadata["imageName"] && !metadata["standalone"]) {
           return {
             resCode: 100,
             obj: { message: "docker image name must be specified" },
@@ -926,6 +926,19 @@ class Decillion {
         byteCode: byteCode,
         runtime: runtime,
         metadata: metadata,
+      });
+    },
+    runMachine: async (
+      machineId: string,
+    ): Promise<{ resCode: number; obj: any }> => {
+      if (!this.userId) {
+        return {
+          resCode: USER_ID_NOT_SET_ERR_CODE,
+          obj: { message: USER_ID_NOT_SET_ERR_MSG },
+        };
+      }
+      return await this.sendRequest(this.userId, "/apps/runMachine", {
+        machineId: machineId,
       });
     },
     listApps: async (
@@ -1554,6 +1567,16 @@ const commands: {
       metadata
     );
   },
+  "machines.runMachine": async (
+    args: string[]
+  ): Promise<{ resCode: number; obj: any }> => {
+    if (args.length !== 1) {
+      return { resCode: 30, obj: { message: "invalid parameters count" } };
+    }
+    return await app.machines.runMachine(
+      args[0],
+    );
+  },
   "machines.listApps": async (
     args: string[]
   ): Promise<{ resCode: number; obj: any }> => {
@@ -1858,7 +1881,7 @@ let ask = () => {
         setTimeout(() => {
           ask();
         });
-      } else if (parts.length == 3 && parts[0] === "docker" && parts[1] == "logs" && parts[2] == "exit" ) {
+      } else if (parts.length == 3 && parts[0] === "docker" && parts[1] == "logs" && parts[2] == "exit") {
         dockBuild = undefined;
         console.log(
           'Welcome to Decillion AI shell, enter your command or enter "help" to view commands instructions: \n'
