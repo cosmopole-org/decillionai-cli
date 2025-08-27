@@ -76,6 +76,7 @@ class Decillion {
         this.socket = tls.connect(options, () => {
           if (this.socket?.authorized) {
             console.log("✔ Tcp TLS connection authorized");
+            this.authenticate();
           } else {
             console.log(
               "⚠ TLS connection not authorized:",
@@ -84,7 +85,7 @@ class Decillion {
           }
           resolve(undefined);
         });
-        this.socket.on("error", (e) => {
+        this.socket.on("error", async (e) => {
           console.log(e);
         });
         this.socket.on("close", (e) => {
