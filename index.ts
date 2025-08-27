@@ -102,6 +102,7 @@ class Decillion {
         this.websocket = new WebSocket(`wss://${this.host}:${this.port2}`);
         this.websocket.on('open', () => {
           console.log("✔ Ws TLS connection authorized");
+          this.authenticate();
           resolve(undefined);
         });
         this.websocket.on("error", (e) => {
