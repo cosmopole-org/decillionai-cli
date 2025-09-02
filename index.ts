@@ -822,6 +822,19 @@ class Decillion {
         signature: signature,
       });
     },
+    registerNode: async (
+      orig: string,
+    ): Promise<{ resCode: number; obj: any }> => {
+      if (!this.userId) {
+        return {
+          resCode: USER_ID_NOT_SET_ERR_CODE,
+          obj: { message: USER_ID_NOT_SET_ERR_MSG },
+        };
+      }
+      return await this.sendRequest(this.userId, "/chains/registerNode", {
+        orig: orig,
+      });
+    },
   };
   public machines = {
     createApp: async (
@@ -1480,7 +1493,7 @@ const commands: {
   "chains.submitBaseTrx": async (
     args: string[]
   ): Promise<{ resCode: number; obj: any }> => {
-    if (args.length !== 2 && 3) {
+    if (args.length !== 2 && args.length !== 3) {
       return { resCode: 30, obj: { message: "invalid parameters count" } };
     }
     if (!isNumeric(args[0])) {
@@ -1496,6 +1509,14 @@ const commands: {
       return { resCode: 30, obj: { message: "invalid object json" } };
     }
     return await app.chains.submitBaseTrx(BigInt(args[0]), args[1], obj);
+  },
+  "chains.registerNode": async (
+    args: string[]
+  ): Promise<{ resCode: number; obj: any }> => {
+    if (args.length !== 1) {
+      return { resCode: 30, obj: { message: "invalid parameters count" } };
+    }
+    return await app.chains.registerNode(args[0]);
   },
   "machines.createApp": async (
     args: string[]
