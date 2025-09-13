@@ -38,7 +38,7 @@ const { verifier, challenge } = generatePKCECodes();
 class Decillion {
   port: number = 8077;
   port2: number = 8076;
-  host: string = "api.decillionai.com";
+  host: string = "api.kproto.app";
   protocol: string = "ws";
   callbacks: { [key: string]: (packageId: number, obj: any) => void } = {};
   socket: tls.TLSSocket | undefined;
@@ -838,7 +838,7 @@ class Decillion {
   };
   public machines = {
     createApp: async (
-      chainId: bigint,
+      chainId: string,
       username: string,
       title: string,
       desc: string,
@@ -1524,13 +1524,7 @@ const commands: {
     if (args.length !== 4) {
       return { resCode: 30, obj: { message: "invalid parameters count" } };
     }
-    if (!isNumeric(args[0])) {
-      return {
-        resCode: 30,
-        obj: { message: "invalid numeric value: chainId --> " + args[0] },
-      };
-    }
-    return await app.machines.createApp(BigInt(args[0]), args[1], args[2], args[3]);
+    return await app.machines.createApp(args[0], args[1], args[2], args[3]);
   },
   "machines.createMachine": async (
     args: string[]
