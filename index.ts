@@ -886,6 +886,19 @@ class Decillion {
         comment: comment,
       });
     },
+    deleteMachine: async (
+      machineId: string,
+    ): Promise<{ resCode: number; obj: any }> => {
+      if (!this.userId) {
+        return {
+          resCode: USER_ID_NOT_SET_ERR_CODE,
+          obj: { message: USER_ID_NOT_SET_ERR_MSG },
+        };
+      }
+      return await this.sendRequest(this.userId, "/apps/deleteMachine", {
+        machineId: machineId,
+      });
+    },
     updateMachine: async (
       machineId: string,
       path: string,
@@ -1533,6 +1546,14 @@ const commands: {
       return { resCode: 30, obj: { message: "invalid parameters count" } };
     }
     return await app.machines.createMachine(args[0], args[1], args[2], args[3], args[4], "");
+  },
+  "machines.deleteMachine": async (
+    args: string[]
+  ): Promise<{ resCode: number; obj: any }> => {
+    if (args.length !== 1) {
+      return { resCode: 30, obj: { message: "invalid parameters count" } };
+    }
+    return await app.machines.deleteMachine(args[0]);
   },
   "machines.updateMachine": async (
     args: string[]
