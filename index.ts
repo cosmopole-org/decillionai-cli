@@ -38,7 +38,7 @@ const { verifier, challenge } = generatePKCECodes();
 class Decillion {
   port: number = 8077;
   port2: number = 8076;
-  host: string = "api.kproto.app";
+  host: string = "api.decillionai.com";
   protocol: string = "ws";
   callbacks: { [key: string]: (packageId: number, obj: any) => void } = {};
   socket: tls.TLSSocket | undefined;
